@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能价保查询系统 | Smart Price Protection</title>
+    <style>
+        :root {
+            --primary-color: #0052cc;
+            --primary-dark: #0747a6;
+            --bg-color: #f4f5f7;
+            --card-bg: #ffffff;
+            --text-main: #172b4d;
+            --text-sub: #5e6c84;
+            --border-color: #dfe1e6;
+            --shadow: 0 4px 12px rgba(0, 82, 204, 0.1);
+            --radius: 8px;
+            --green-bg: #e3fcef; --green-text: #006644;
+            --yellow-bg: #fff0b3; --yellow-text: #172b4d;
+            --red-bg: #ffebe6; --red-text: #bf2600;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+        
+        /* Header */
+        .header { grid-column: 1 / -1; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; }
+        .header h1 { font-size: 24px; font-weight: 700; color: var(--primary-color); letter-spacing: -0.5px; }
+        .header .badge { background: #deebff; color: var(--primary-color); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        
+        /* Cards */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--bg-color); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Form Elements */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-col { flex: 1; }
+        input, select { width: 100%; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 6px; font-size: 14px; color: var(--text-main); background: #fafbfc; transition: all 0.2s; outline: none; }
+        input:focus, select:focus { border-color: var(--primary-color); background: #fff; }
+        input:disabled, select:disabled { background: #ebecf0; color: #a5adba; cursor: not-allowed; border-color: #dfe1e6; }
+        
+        /* Highlight Platform Selection */
+        #platform { border-color: #0052cc; background-color: #f0f7ff; }
+
+        /* Toggles */
+        .toggle-wrapper { display: flex; align-items: center; background: #fafbfc; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; }
+        .toggle-wrapper input[type="checkbox"] { width: auto; margin-right: 10px; transform: scale(1.2); }
+        .toggle-input-group { display: flex; align-items: center; margin-left: auto; gap: 5px; }
+        .toggle-input-group input { width: 70px; padding: 6px; text-align: center; }
+        
+        /* Button */
+        .btn-primary { width: 100%; padding: 14px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:disabled { background: #ebecf0; color: #999; cursor: not-allowed; }
+        
+        /* Status Bar */
+        .status-bar { font-size: 12px; padding: 8px 12px; border-radius: 4px; background: #ebecf0; color: var(--text-sub); margin-bottom: 20px; font-weight: 500; text-align: center; }
+        .status-bar.active { background: var(--green-bg); color: var(--green-text); }
+        .status-bar.preheat { background: var(--yellow-bg); color: var(--yellow-text); }
+        
+        /* Result Area */
+        .refund-card {
+            background: linear-gradient(135deg, #0052cc, #007bff);
+            color: white;
+            padding: 24px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0, 82, 204, 0.2);
+        }
+        .refund-amount { font-size: 36px; font-weight: 800; margin: 8px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .refund-formula { font-size: 12px; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; font-family: monospace; }
+        
+        /* Rule Blocks */
+        .rule-block {
+            background: #fff;
+            border: 1px solid #e1e4e8;
+            border-left: 4px solid #0052cc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .rule-block.gray-area { border-left-color: #ffab00; background: #fffbf0; }
+        .rule-block.reject { border-left-color: #ff5630; background: #fff5f5; }
+        
+        .block-header { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .tag-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .tag.policy { background: #e3fcef; color: #006644; }
+        .tag.strategy { background: #deebff; color: #0747a6; }
+        
+        .script-box {
+            background: #f4f5f7;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #172b4d;
+            white-space: pre-wrap;
+            border: 1px dashed #c1c7d0;
+        }
+        .script-title { font-weight: 700; margin-bottom: 4px; display: block; color: #5e6c84; font-size: 12px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>价保智能查询工具</h1>
+        <span class="badge">V3.2</span>
+    </div>
+    
+    <div class="container">
+        <!-- 左侧：输入控制区 -->
+        <div class="card">
+            <div class="section-title">① 平台与产品</div>
+            
+            <!-- 第一行：平台 (第一步) -->
+            <div class="form-group">
+                <label>1. 购买平台 <span style="color:red">*</span></label>
+                <select id="platform" onchange="handlePlatformChange()">
+                    <option value="" selected disabled>请先选择购买平台...</option>
+                    <option value="tmall">天猫</option>
+                    <option value="jd_pop">京东POP</option>
+                    <option value="douyin">抖音</option>
+                    <option value="dji">DJI官方商城</option>
+                    <option value="pdd">拼多多、微信小店、小红书</option>
+                </select>
+            </div>
+
+            
+            <!-- 第三行：产品与版本 (第三、四步) -->
+            <div class="form-group">
+                <label>3. 选择产品 & 版本</label>
+                <div class="form-row">
+                    <select id="product" onchange="updateVersions()" class="form-col" disabled>
+                        <option value="">← 请先选择类型</option>
+                    </select>
+                    <select id="version" onchange="updatePriceDisplay()" class="form-col" disabled>
+                        <option value="">-</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="section-title" style="margin-top:10px;">② 时间与金额</div>
+            <div class="form-group">
+                <label>时间节点</label>
+                <div class="form-row">
+                    <div class="form-col">
+                        <span style="font-size:12px;color:#777">客户签收日期</span>
+                        <input type="date" id="signDate">
+                    </div>
+                    <div class="form-col">
+                        <span style="font-size:12px;color:#777">客户申请价保日期</span>
+<input type="date" id="applyDate" onchange="updatePriceDisplay(); calculateIfReady();">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="periodIndicator" class="status-bar">请选择日期</div>
+            
+            <div class="form-row">
+                <div class="form-col form-group">
+                    <label>申请价保时活动价（参考）</label>
+                    <input type="number" id="currentPromoPrice" readonly placeholder="自动获取">
+                </div>
+                <div class="form-col form-group">
+                    <label>原订单商品单价</label>
+                    <input type="number" id="originalPrice" placeholder="¥ 客户实付">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>历史已退差金额</label>
+                <input type="number" id="refundedAmount" value="0">
+            </div>
+            
+<div class="form-group">
+    <div class="toggle-wrapper">
+        <input type="checkbox" id="hasOldSubsidy" onchange="toggleSubsidyInputs()">
+        <label for="hasOldSubsidy" style="margin:0;font-weight:normal;font-size:13px;flex:1;">原订单是否有国补/DJI商城优惠券</label>
+        <div class="toggle-input-group">
+            <input type="number" id="oldSubsidyRate" value="15"> %
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <div class="toggle-wrapper">
+        <input type="checkbox" id="hasNewSubsidy" onchange="toggleSubsidyInputs()">
+        <label for="hasNewSubsidy" style="margin:0;font-weight:normal;font-size:13px;flex:1;">申请价保时是否有国补/DJI商城优惠券</label>
+        <div class="toggle-input-group">
+            <input type="number" id="newSubsidyRate" value="15"> %
+        </div>
+    </div>
+</div>
+            
+            <button class="btn-primary" onclick="calculate()">生成价保方案</button>
+        </div>
+        
+        <!-- 右侧：结果展示区 -->
+        <div class="card">
+            <div class="refund-card">
+                <div style="font-size:14px;opacity:0.9">建议退差金额</div>
+                <div class="refund-amount" id="refundAmountResult">¥ 0.00</div>
+                <div class="refund-formula" id="formulaUsed">请点击生成方案</div>
+            </div>
+            
+            <div class="section-title">
+                <span>价保策略与话术</span>
+            </div>
+            
+            <div id="resultContainer" style="min-height: 200px;">
+                <div style="text-align:center;color:#999;padding:40px;font-size:14px;">
+                    请按顺序选择：<br>
+                    <b>平台 ➔ 类型 ➔ 产品</b><br><br>
+                    系统将自动匹配对应的话术和价格
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= 配置数据 =================
+const timeConfig = {
+    power: { 
+        preheatStart: null, 
+        preheatEnd: null, 
+        wave1Start: "2025-11-28T00:00", 
+        wave1End: "2025-12-07T23:59", 
+        wave2Start: "2025-12-08T00:00", 
+        wave2End: "2025-12-12T23:59" 
+    },
+    drone: { 
+        wave1Start: "2025-12-03T00:00", 
+        wave1End: "2025-12-12T23:59" 
+    },
+    handheld: { 
+        wave1Start: "2025-12-03T00:00", 
+        wave1End: "2025-12-12T23:59" 
+    },
+    mic: { 
+        wave1Start: "2025-12-03T00:00", 
+        wave1End: "2025-12-12T23:59" 
+    }
+};
+        // 价格数据
+        const baseTmallData = {
+            power: { "Power 1000 V2": { "ALL": { w1: 2599, w2: 2499 } }, "Power 2000": { "ALL": { w1: 4999, w2: 4699 } } },
+            drone: { "Mini 4 Pro": { "单机-普通遥控器": { w1: 4070 }, "单机-带屏遥控器": { w1: 5090 }, "套装-带屏遥控器": { w1: 5590 }, "长续航-带屏遥控器": { w1: 5910 } }, "Mini 3": { "普通版": { w1: 2088 }, "带屏版": { w1: 2788 }, "带屏套": { w1: 3488 } }, "Mini 4K": { "单机": { w1: 1599 }, "双电": { w1: 1948 }, "畅飞套": { w1: 2239 } } },
+            handheld: { "OA4": { "OA4 标准套装": { w1: 1248.65 }, "OA4 全能套装": { w1: 1948.20 } }, "OP3": { "Osmo Pocket 3 单机": { w1: 2799 }, "Osmo Pocket 3 全能套装": { w1: 3599 } }, "OM 7P": { "OM7P及套装": { w1: 699 } }, "Osmo 360": { "Osmo 360 标准": { w1: 2704.71 }, "Osmo 360 畅拍套装": { w1: 3528.24 }, "Osmo 360 人气套装": { w1: 3116.47 } }, "Osmo Nano": { "标准版": { w1: 1850 }, "畅拍套装": { w1: 2115 } } },
+            mic: { "Mic Mini": { "两发一收，带充电盒": { w1: 589 }, "一发一收": { w1: 319 }, "发射器": { w1: 179 } }, "DJI Mic (Mic 1)": { "两发一收，含充电盒": { w1: 1169 }, "一发一收": { w1: 699 } }, "Mic 2": { "两发一收，含充电盒": { w1: 1499.00 }, "一发一收": { w1: 999.00 }, "两发一收 (小款/不含盒)": { w1: 449.00 } } }
+        };
+        const basePddData = {
+            power: { "Power 1000 V2": { "ALL": { w1: 2599, w2: 2499 } }, "Power 2000": { "ALL": { w1: 4999, w2: 4699 } } },
+            drone: { "Avata 2": { "智选套装（单电池版）": { w1: 3389.80 }, "智选套装（三电池版）": { w1: 4239.80 }, "畅飞套装 (单电池版)": { w1: 5089.80 }, "畅飞套装 (三电池版)": { w1: 5939.80 }, "单机版": { w1: 2539.80 } }, "Mini 4K": { "单机": { w1: 1599 }, "双电": { w1: 1948 }, "畅飞套": { w1: 2239 } }, "Mini 4 Pro": { "单机-普通遥控器": { w1: 4070 }, "单机-带屏遥控器": { w1: 5090 }, "套装-带屏遥控器": { w1: 5590 }, "长续航-带屏遥控器": { w1: 5910 } }, "Mini 3": { "普通版": { w1: 2088 }, "带屏版": { w1: 2788 }, "带屏套": { w1: 3488 } }, "Flip": { "双电套装": { w1: 1988.15 }, "标准版": { w1: 2227.85 }, "带屏遥控器": { w1: 3187.50 }, "畅飞套装（带屏遥控器）": { w1: 3988.20 } }, "Neo": { "DJI Neo 单机": { w1: 1104.15 }, "DJI Neo 套装": { w1: 1529.15 }, "DJI Neo 畅飞套装": { w1: 1954.15 }, "DJI Neo 体感畅飞套装": { w1: 2974.15 } } },
+            handheld: { "Osmo 360": { "Osmo 360 标准": { w1: 2299.00 }, "Osmo 360 畅拍套装": { w1: 2999.00 }, "Osmo 360 人气套装": { w1: 2649.00 } }, "RS 4 Mini": { "DJI RS 4 Mini": { w1: 1699.15 }, "DJI RS 4 Mini Combo": { w1: 2124.15 } }, "OA4": { "OA4 标准套装": { w1: 1248.65 }, "OA4 全能套装": { w1: 1948.20 } }, "OP3": { "Osmo Pocket 3 单机": { w1: 2799 }, "Osmo Pocket 3 全能套装": { w1: 3599 } }, "OM 7P": { "OM7P及套装": { w1: 699 } }, "Osmo Nano": { "标准版": { w1: 1850 }, "畅拍套装": { w1: 2115 } } },
+            mic: { "Mic Mini": { "两发一收，带充电盒": { w1: 492.15 }, "一发一收": { w1: 271.15 }, "发射器": { w1: 143.65 } }, "DJI Mic (Mic 1)": { "两发一收，含充电盒": { w1: 993.65 }, "一发一收": { w1: 594.15 } }, "Mic 2": { "两发一收，含充电盒": { w1: 1274.15 }, "一发一收": { w1: 849.15 }, "两发一收 (小款/不含盒)": { w1: 381.65 } }, "Mic 3": { "两发一收，含充电盒": { w1: 1954.15 }, "一发一收": { w1: 1104.15 }, "发射器": { w1: 594.15 }, "接收器": { w1: 679.15 } } }
+        };
+
+// 只在拼多多/微信/小红书卖的商品
+const pddOnlyProductList = {
+    drone: ["Avata 2", "Flip", "Neo"],
+    handheld: ["RS 4 Mini"],
+    mic: ["Mic 3"]
+};
+
+function createFilteredData(baseData, excludeList) {
+    const filtered = {};
+    for (const category in baseData) {
+        filtered[category] = {};
+        for (const product in baseData[category]) {
+            if (excludeList[category] && excludeList[category].includes(product)) {
+                continue; 
+            }
+            filtered[category][product] = baseData[category][product];
+        }
+    }
+    return filtered;
+}
+
+
+const baseTmallDataFiltered = createFilteredData(baseTmallData, pddOnlyProductList);
+
+const basePddDataFiltered = basePddData;
+
+
+const promoPricesByPlatform = {
+    tmall: baseTmallDataFiltered,
+    jd_self: baseTmallDataFiltered,
+    jd_pop: baseTmallDataFiltered,
+    douyin: baseTmallDataFiltered,
+    dji: baseTmallDataFiltered,
+    pdd: basePddDataFiltered,
+    wechat: basePddDataFiltered,
+    xhs: basePddDataFiltered
+};
+
+
+
+
+        const productDB = { power: { "户外电源1000 Pro": { "标准版": { w1: 4999 } } } };
+
+        // ================= 话术库 =================
+        const scripts = {
+            power_tmall_pop_within7: { title: "场景一：订单支付时间 ≤ 7*24小时", policy: "可退差", strategy: "引导自助价保", script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，您可以进入：手机淘宝搜索【价保】进入价保中心/京东APP我的-客户服务-价格保护，一键申请价保哦\n\n温馨提示：因国家及政府补贴、红包（含消费券）、单品补贴、平台官方补贴（含百亿补贴）等非店铺发放的优惠政策导致的价异不在价保范围内" },
+            power_tmall_pop_within7_manual: { title: "场景二：订单提交时间距离联系时间＞7*24小时，但订单签收时间≤7天", policy: "可退差", strategy: "人工直赔", script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，请您按照如下方式提交退差申请哈，活动差价以到手价差价为准\n\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：国家补贴、平台满减活动、优惠券等不包含在价保范围内" },
+            power_douyin_within7_normal: { title: "非国补订单", policy: "可退差 (订单页申请)", strategy: "引导仅退款>退运费", script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价，是支持价保的，您可以按照如下方式提交退差申请哈，活动差价以到手价差价为准。\n\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包、限量发放的购物券等非店铺发放的优惠政策导致的价异不在价保范围内" },
+            power_douyin_within7_subsidy: { title: "真国补订单", policy: "可退差", strategy: "通过小额打款的方式转差价给客户", script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价。由于国补订单平台是不支持部分退款退差价的，这次将为您特殊申请小额打款的方式为您退差价哈。预计将在 7 天内 由专人为您操作小额打款退差，还请您耐心等待呢，感谢您的支持~\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）等非店铺发放的优惠政策导致的价异不在价保范围内" },
+            power_general_within7: { title: "7天内价保", policy: "可退差", strategy: "引导仅退款>退差价", script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价，是支持价保的。您可以按照如下方式提交退差申请哈，活动差价以到手价差价为准。\n\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包、限量发放的购物券等非店铺发放的优惠政策导致的价异不在价保范围内" },
+
+
+power_jd_pop_within7: {
+    title: "京东POP 场景一：订单提交时间距离联系时间≤7*24小时",
+    policy: "可退差",
+    strategy: "引导自助价保",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，您可以进入京东App端：我的-客户服务-价格保护，一键申请价保哦\n\n温馨提示：因国家及政府补贴、红包（含消费券）、限量发放的单品补贴、平台官方补贴（含百亿补贴/秒杀）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+
+power_jd_pop_within7_manual: {
+    title: "京东POP 场景二：订单提交时间距离联系时间＞7*24小时，但订单签收时间≤7天",
+    policy: "可退差",
+    strategy: "人工直赔",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。这边将为您登记退差，差价将会在3天内退还至您京东钱包余额，请您留意查收哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、限量发放的单品补贴、平台官方补贴（含百亿补贴/秒杀）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+power_dji_within7: {
+    title: "国内商城 7天内",
+    policy: "可退差",
+    strategy: "引导客户申请仅退款>退差价",
+    script: "您好，咱们商城是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内出现降价是可以申请价保的，您可以进入「我的订单>申请售后>仅退款>退差价」申请价保。差价将会在 2-7 个工作日原路退还到您的支付账户，请您留意查收哦~"
+},
+
+
+after_event_reject: {
+    title: "活动已结束",
+    policy: "不支持价保，婉拒",
+    strategy: "如有以下场景升级客诉<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: "1. 您好，非常抱歉由于活动已经结束，目前商品价格未发生变化是不支持价保的呢，还请您谅解~\n\n2. 理解您的需求，的确是仅活动期内申请且符合价保规则的订单才支持价保，实在是抱歉"
+},
+
+before_event_start: {
+    title: "活动尚未开始",
+    policy: "活动尚未开始",
+    strategy: "活动尚未开始",
+    script: "活动尚未开始"
+},
+
+// 天猫/京东POP（非Power）
+nopower_tmall_within7: {
+    title: "非Power 天猫 7天内",
+    policy: "可退差",
+    strategy: "引导自助价保",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，您可以进入：手机淘宝搜索【价保】进入价保中心，一键申请价保哦\n\n温馨提示：因国家及政府补贴、红包（含消费券）、天猫购物券、天猫积分、淘金币抵扣、限量发放的单品补贴、平台官方补贴（含百亿补贴）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+
+// 京东POP（非Power）
+nopower_jd_pop_within7: {
+    title: "非Power 京东POP 7天内",
+    policy: "可退差",
+    strategy: "引导自助价保",
+    script: "您好，咱们商城是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。您可以进入京东App端：我的-客户服务-价格保护，申请一键价保退差哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、限量发放的单品补贴、平台官方补贴（含百亿补贴/秒杀）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 天猫（非Power）
+nopower_tmall_within7_selfprice: {
+    title: "天猫：订单支付7*24小时",
+    policy: "可退差",
+    strategy: "引导自助价保",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，您可以进入：手机淘宝搜索【价保】进入价保中心，一键申请价保哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、天猫购物券、天猫积分、淘金币抵扣、限量发放的单品补贴、平台官方补贴（含百亿补贴）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+nopower_tmall_within7_refund: {
+    title: "订单提交时间距离联系时间＞7*24小时，但订单签收时间≤7天",
+    policy: "可退差",
+    strategy: "引导申请仅退款>退运费",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，请您按照如下方式提交退差申请哈，活动差价以到手价差价为准：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府补贴、红包（含消费券）、天猫购物券、天猫积分、淘金币抵扣、限量发放的单品补贴、平台官方补贴（含百亿补贴）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 京东POP（非Power）
+nopower_jd_pop_within7_selfprice: {
+    title: "订单提交时间距离联系时间≤7*24小时",
+    policy: "可退差",
+    strategy: "引导自助价保",
+    script: "您好，咱们商城是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。您可以进入京东App端：我的-客户服务-价格保护，申请一键价保退差哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、限量发放的单品补贴、平台官方补贴（含百亿补贴/秒杀）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+nopower_jd_pop_within7_manual: {
+    title: "订单提交时间距离联系时间＞7*24小时，但订单签收时间≤7天",
+    policy: "可退差",
+    strategy: "人工直赔",
+    script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价，是支持价保的。这边将为您登记退差，差价将会在3天内退还至您京东钱包余额，请您留意查收哦~"
+},
+
+// 抖音（非Power）
+nopower_douyin_within7_normal_v2: {
+    title: "非国补订单：引导订单界面申请退差",
+    policy: "可退差",
+    strategy: "引导仅退款>退运费",
+    script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价，是支持价保的，您可以按照如下方式提交退差申请哈，活动差价以到手价差价为准。\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）、限量发放的购物券或单品补等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+nopower_douyin_within7_subsidy_v2: {
+    title: "真国补订单：通过小额打款的方式转差价给客户",
+    policy: "可退差",
+    strategy: "小额打款",
+    script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价。由于国补订单平台是不支持部分退款退差价的，这次将为您特殊申请小额打款的方式为您退差价哈。预计将在 7 天内 由专人为您操作小额打款退差，还请您耐心等待呢，感谢您的支持~\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）、限量发放的购物券或单品补等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 拼多多 / 微信 / 小红书（非Power）
+nopower_pdd_wechat_xhs_within7_v2: {
+    title: "非Power 拼多多/微信/小红书 7天内",
+    policy: "可退差",
+    strategy: "引导仅退款>退运费",
+    script: "亲亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的，您可以按照如下方式提交退差申请哈：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）、限量发放的购物券或单品补等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 国内商城（非Power）
+nopower_dji_within7_v2: {
+    title: "国内商城订单签收：7天内",
+    policy: "可退差",
+    strategy: "引导客户进入「我的订单>申请售后>仅退款>退差价」",
+    script: "您好，咱们商城是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。您可以进入「我的订单>申请售后>仅退款>退差价」申请价保，差价将在 2-7 个工作日原路退还到您的支付账户，请您留意查收哦~"
+},
+
+
+// 京东自营（非Power）
+nopower_jd_self_within7_v2: {
+    title: "京东自营：订单签收7天内",
+    policy: "可退差",
+    strategy: "解释价保政策，引导自助价保",
+    script: "亲，根据平台价保规则，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。您可以进入京东App端：我的-客户服务-价格保护，申请一键价保退差哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、限量发放的单品补贴、平台官方补贴（含百亿补贴/秒杀）等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+nopower_gift_reject: {
+    title: "买赠：赠品不支持价保，婉拒",
+    policy: "不支持价保",
+    strategy: "如有以下场景升级客诉<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: "【赠品价保婉拒1】：非常理解您的需求，咱们店铺是提供价保服务的，如价保周期内，因同一商品出现商家官方降价产生的差价，是支持价保的，赠品不在价保范围内呢，还请您理解。\n\n【赠品价保婉拒2】：仅在活动期购买的订单才享受赠品，且数量有限，先到先得，无法申请补发，确实很抱歉。\n\n【赠品价保婉拒3】：我们非常希望能协助您解决问题，但赠品的确是不在价保范围内，衷心希望您可以理解。"
+},
+
+// ===== 非Power 全平台：退货重拍（含非国补+国补） =====
+nopower_gift_retirebuy: {
+    title: "买赠：如客户主动要求退货重拍",
+    policy: "不支持价保",
+    strategy: "1）11月15-11月16日购买：签收30天内可受理退货。2）11月17日及以后购买：签收7天内可受理退货",
+    script: "价保退货重拍（非国补）：同为消费者非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？的确是麻烦您了~\n\n价保退货重拍（国补）：同为消费者，我非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？"
+},
+
+nopower_over7_block1: {
+    title: "超7天 - 场景1",
+    policy: "不可退差",
+    strategy: "解释价保政策，婉拒（不升级外呼，不给补偿）。如有以下场景升级客诉<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: `店铺是提供 7 天价保服务的，查看到目前您的订单签收时间次日起 0 点距离申请价保时间已经超过 7 天，已经超过了店铺价保周期，实在是抱歉呢
+
+您的心情我完全理解，确实超出活动价保周期的情况会让您感到难受，但也帮您核查到由于您的订单已超过价保政策时间太久，所以也遗憾无法为您提供价保服务或退差价，辛苦您谅解。
+
+非常理解您的心情，您提前购买了产品，也能记录更多独一无二的精彩时刻。由于这个订单已经超出活动价保时效很长时间了，抱歉确实无法为您提供价保服务或退差价。
+
+我们非常希望能协助您解决问题，但目前您的订单因超过价保时效很久，无法再进行价保，衷心希望您可以理解。`
+},
+
+
+nopower_over7_block2: {
+    title: "超7天 - 场景2",
+    policy: "不可退差",
+    strategy: "如有客户预热期申请价保，需要以商品降价时间为节点计算价保\n1、如订单签收次日0点距离联系时间≤7天：参考各平台【价保7天内】话术回复客户\n2、如订单签收次日0点距离联系时间＞7天：参考【价保超7天】话术回复客户，如客户不认可预热期不提供价保，则参考【预热价保争议】解释\n注意：支持平台一键价保平台，需引导客户活动正式上线申请平台一键价保，避免人工退差后重复申请一键价保",
+    script: `如购买的商品在 7 天价保期内出现降价是可以申请价保的呢，但是目前正值活动预热期，您的订单签收时间距离商品降价时间已经超过 7 天，不符合当前的价保政策呢，还请亲理解~`
+},
+
+
+nopower_over7_block3: {
+    title: "超7天 - 场景3",
+    policy: "不可退差",
+    strategy: "如客户主动要求退货重拍。1）11月15-11月16日购买：签收30天内可受理退货。2）11月17日及以后购买：签收7天内可受理退货",
+    script: "同为消费者非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？的确是麻烦您了~\n\n同为消费者，我非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？不过由于您的订单此前享受了国补，国补资质需要等退货完成后才能退回，且支持国补地区及可用时间，会基于平台及政府实时政策调整。如您目前的地区支持国补，建议您这边可以更换账号下单，避免后续退货重拍时因政策调整无法享受国补呢，麻烦您了~"},
+
+
+// ===== 天猫 Mini3/Mini4K 百亿补贴婉拒 =====
+nopower_tmall_mini_billionreject: {
+    title: "天猫 Mini3/Mini4K 百亿补贴/消费券",
+    policy: "不支持价保",
+    strategy: "百亿补贴/消费券不支持价保，婉拒。如有以下场景升级客诉<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: "价保百亿补贴婉拒1：由于双12在即，平台可能会不定期上线限时优惠等活动。根据平台价保规则，在价保周期内，因百亿补贴活动导致商品降价，不支持价保，还请您理解。\n\n价保百亿补贴婉拒2：非常理解您的诉求，我也非常想帮到您，但确实百亿补贴不在价保范围内，所以无法为您价保，还希望您能谅解~"
+},
+
+// ===== 抖音 Mini3/Mini4K 消费券婉拒 =====
+nopower_douyin_mini_couponreject: {
+    title: "抖音 Mini3/Mini4K 消费券价保婉拒",
+    policy: "不支持价保",
+    strategy: "百亿补贴/消费券不支持价保，婉拒。如有以下场景升级客诉<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: "价保消费券婉拒1：由于双12在即，平台可能会不定期发放消费券。根据店铺价保规则，因平台消费券导致商品降价，不支持价保，还请您理解。\n\n价保消费券婉拒2价保消费券婉拒2：非常理解您的诉求，我也非常想帮到您，但确实平台消费券不在价保范围内，所以无法为您价保，还希望您能谅解~"
+},
+
+// ===== Mini3/Mini4K 退货重拍 非国补 =====
+nopower_mini_retirebuy: {
+    title: "Mini3/Mini4K：如客户主动要求退货重拍",
+    policy: "不支持价保",
+    strategy: "1）11月15-11月16日购买：签收30天内可受理退货。2）11月17日及以后购买：签收7天内可受理退货",
+    script: "价保退货重拍非国补：同为消费者非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？的确是麻烦您了~ \n\n价保退货重拍国补：同为消费者，我非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？~\n\n不过由于您的订单此前享受了国补，国补资质需要等退货完成后才能退回，且支持国补地区及可用时间，会基于平台及政府实时政策调整。如您目前的地区支持国补，建议您这边可以更换账号下单，避免后续退货重拍时因政策调整无法享受国补呢，麻烦您了~"
+},
+
+
+
+power_gray_area_tmall: {
+    title: "订单签收 8-15 天",
+    policy: "可退差",
+    strategy: "引导订单界面申请退差（仅退款>退运费）。注意：电源对外价保政策为7天，8-15天的客户告知特殊申请退差（灰度处理）",
+    script: "店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈。\n\n感谢您的耐心等待，跟领导本次特殊申请可以退差呢，请您按照如下方式提交退差申请哈，活动差价以到手价差价为准\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：国家补贴、平台满减活动、优惠券等不包含在价保范围内"
+},
+
+// 抖音灰度期
+power_gray_area_douyin: {
+    title: "订单签收 8-15 天",
+    policy: "可退差",
+    strategy: "引导订单界面申请退差（仅退款>退运费）。注意：电源对外价保政策为7天，8-15天的客户告知特殊申请退差（灰度处理）",
+    script: "1. 店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈。\n\n2. 感谢您的耐心等待，跟领导本次特殊申请可以退差呢，您可以按照如下方式提交退差申请哈，活动差价以到手价差价为准。\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）、限量发放的购物券或单品补等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 拼多多 / 微信 / 小红书灰度期
+power_gray_area_pdd_wechat_xhs: {
+    title: "拼多多/微信小店/小红书 订单签收8-15 天",
+    policy: "可退差",
+    strategy: "引导客户仅退款>退差价。注意：电源对外价保政策为7天，8-15天的客户告知特殊申请退差（灰度处理）",
+script: "1. 店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈。\n\n2. 感谢您的耐心等待，跟领导本次特殊申请可以退差呢，您可以按照如下方式提交退差申请哈，活动差价以到手价差价为准。\n申请方式：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可\n\n温馨提示：因国家及政府发放的补贴、红包（含消费券）、限量发放的购物券或单品补等非店铺发放的优惠政策导致的价异不在价保范围内"
+},
+
+// 京东POP灰度期
+power_gray_area_jd_pop: {
+    title: "京东POP：订单签收8-15 天",
+    policy: "可退差",
+    strategy: "人工直赔",
+    script: "1. 店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈\n\n2. 感谢您的耐心等待，跟领导本次特殊申请可以退差呢，这边将为您登记退差，差价将会在3天内退还至您京东钱包余额，请您留意查收哦~"
+},
+
+// 国内商城灰度期
+power_gray_area_dji: {
+    title: "国内商城：订单签收 8-15 天",
+    policy: "可退差",
+    strategy: "引导客户售后仅退款>退差价",
+    script: "商城是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了 7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈\n\n感谢您的耐心等待，跟领导本次特殊申请可以退差呢，您可以进入「我的订单>申请售后>仅退款>退差价」申请价保。差价将会在 2-7 个工作日原路退还到您的支付账户，请您留意查收哦~"
+},
+
+
+power_jd_self_over7_step1: {
+    title: "京东自营超7天：场景1",
+    policy: "不可退差",
+    strategy: "解释价保政策，婉拒，不升级外呼，不给补偿<br>如有以下场景升级客诉：<br><img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='升级客诉参考图' style='max-width:100%;margin-top:6px;'/>",
+    script: "店铺是提供 7 天价保服务的，查看到目前您的签收时间距离申请价保时间已经超过 7 天，已经超过了店铺价保周期，实在是抱歉呢。\n\n您的心情我完全理解，确实超出活动价保周期的情况会让您感到难受，但也帮您核查到由于您的订单已超过价保政策时间太久，所以也遗憾无法为您提供价保服务或退差价，辛苦您谅解。\n\n非常理解您的心情，您提前购买了产品，也能记录更多独一无二的精彩时刻。由于这个订单已经超出活动价保时效很长时间了，抱歉确实无法为您提供价保服务或退差价。\n\n我们非常希望能协助您解决问题，但目前您的订单因超过价保时效很久，无法再进行价保，衷心希望您可以理解。"
+},
+
+power_jd_self_over7_step2: {
+    title: "京东自营超7天：场景2",
+    policy: "不可退差",
+    strategy: "如客户主动要求退货重拍（订单签收15天内可受理退货）",
+    script: "同为消费者非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？的确是麻烦您了~\n\n同为消费者，我非常理解您的心情，如您产品符合店铺退货要求，建议您这边申请下退货退款，再重新以活动价购买，您看看这样可以吗？\n\n不过由于您的订单此前享受了国补，国补资质需要等退货完成后才能退回，且支持国补地区及可用时间，会基于平台及政府实时政策调整。如您目前的地区支持国补，建议您这边可以更换账号下单，避免后续退货重拍时因政策调整无法享受国补呢，麻烦您了~"
+},
+
+
+            power_gray_area: { title: "签收 8-15 天 (灰度期)", policy: "特殊申请 (灰度处理)", strategy: "先告知超期，后特批退差", script: "店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间超过了7 天，已经超过了店铺价保周期。不过考虑到您的订单签收15天内，这边把您的情况帮您反馈给领导确认下，您稍等哈\n\n----------\n(领导确认后)：\n感谢您的耐心等待，跟领导本次特殊申请可以退差呢，请您按照如下方式提交退差申请哈：\n①如已收到货：订单先确认收货，然后申请仅退款-退运费-输入差价金额即可\n②如未收到货：待收到货后检查无误，当天确认收货，然后申请仅退款-退运费-输入差价金额即可" },
+reject: {
+    title: "超过价保周期：签收超出15天",
+    policy: "不可退差",
+    strategy: "解释价保政策，婉拒，不升级外呼，不给补偿。如有以下场景升级客诉：<img src='https://terra-1-g.djicdn.com/eb222cbc4f4345e3a134199bab1f0894/5e8073cd744446f6a7baf780f7dde3d3.jpg' alt='参考图片' style='max-width:100%;margin-top:10px;'/>",
+    script: "店铺是提供 7 天价保服务的，查看到目前您的订单签收时间距离申请价保时间已经超过 7 天，已经超过了店铺价保周期，实在是抱歉呢。\n\n您的心情我完全理解，确实超出活动价保周期的情况会让您感到难受，但也帮您核查到由于您的订单已超过价保政策时间太久，所以也遗憾无法为您提供价保服务或退差价，辛苦您谅解。\n\n非常理解您的心情，您提前购买了产品，也能记录更多独一无二的精彩时刻。由于这个订单已经超出活动价保时效很长时间了，抱歉确实无法为您提供价保服务或退差价。\n\n我们非常希望能协助您解决问题，但目前您的订单因超过价保时效很久，无法再进行价保，衷心希望您可以理解。"},
+            power_jd_self_within7: { title: "京东自营 7天内", policy: "可退差", strategy: "引导客户仅退款>退差价", script: "亲，根据平台价保规则，商品在订单签收前 或 签收次日0点起 7 天内出现降价是可享受价保服务的，看到您的商品目前是在 7 天价保周期内的呢，您可以进入京东App端：我的-客户服务-价格保护，申请一键价保退差哦~\n\n温馨提示：因国家及政府补贴、红包（含消费券）、平台官方补贴等非店铺发放的优惠政策导致的价异不在价保范围内" },
+            nopower_within7: { title: "7天内价保", policy: "可退差", strategy: "平台自助 或 人工退差", script: "亲，咱们店铺是提供 7 天价保服务的，订单签收前 或 订单签收次日0点起7天内，因同一商品出现商家官方降价是支持价保的。\n\n1. 如支持一键价保：请进入订单/客户服务页面申请\n2. 如不支持：请申请售后-仅退款-退运费/差价\n\n温馨提示：国补、红包、平台补贴等不包含在价保范围内。" }
+        };
+
+        // ================= 逻辑控制函数 =================
+        
+
+function handlePlatformChange() {
+    const platform = document.getElementById('platform').value;
+    const prodSelect = document.getElementById('product');
+    const verSelect = document.getElementById('version');
+    prodSelect.innerHTML = "";
+    verSelect.innerHTML = "<option value=''>-</option>";
+    verSelect.disabled = true;
+
+    if (!platform) {
+        prodSelect.disabled = true;
+        return;
+    }
+    prodSelect.disabled = false;
+
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = "";
+    defaultOpt.selected = true;
+    defaultOpt.disabled = true;
+    defaultOpt.textContent = "请选择产品...";
+    prodSelect.appendChild(defaultOpt);
+
+    const platformData = promoPricesByPlatform?.[platform] || {};
+
+
+    for (let categoryName in platformData) {
+        for (let productName in platformData[categoryName]) {
+            const opt = document.createElement('option');
+            opt.value = productName;
+            opt.textContent = productName; 
+            opt.dataset.category = categoryName; 
+            prodSelect.appendChild(opt);
+        }
+    }
+
+    document.getElementById('currentPromoPrice').value = '';
+}
+
+
+
+
+        function handleCategoryChange() {
+            const platform = document.getElementById('platform').value;
+            const cat = document.getElementById('category').value;
+            const prodSelect = document.getElementById('product');
+            const verSelect = document.getElementById('version');
+
+            prodSelect.innerHTML = "";
+            verSelect.innerHTML = "<option value=''>-</option>";
+            verSelect.disabled = true;
+
+            if (!cat) {
+                prodSelect.disabled = true;
+                return;
+            }
+
+            prodSelect.disabled = false; 
+            
+
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = "";
+            defaultOpt.selected = true;
+            defaultOpt.disabled = true;
+            defaultOpt.textContent = "请选择产品...";
+            prodSelect.appendChild(defaultOpt);
+
+            const products = promoPricesByPlatform?.[platform]?.[cat] || {};
+            
+            if (Object.keys(products).length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = "该平台暂无此品类数据";
+                opt.disabled = true;
+                prodSelect.appendChild(opt);
+            } else {
+                for (let productName in products) {
+                    const opt = document.createElement('option');
+                    opt.value = productName;
+                    opt.textContent = productName;
+                    prodSelect.appendChild(opt);
+                }
+            }
+            document.getElementById('currentPromoPrice').value = '';
+        }
+
+
+function updateVersions() {
+    const platform = document.getElementById('platform').value;
+    const prodSelect = document.getElementById('product');
+    const prodName = prodSelect.value;
+
+
+    const cat = prodSelect.options[prodSelect.selectedIndex]?.dataset?.category;
+    const verSelect = document.getElementById('version');
+    verSelect.innerHTML = "";
+
+
+    document.getElementById('originalPrice').value = '';
+    document.getElementById('signDate').value = '';
+    document.getElementById('applyDate').value = '';
+
+    if (!prodName || !cat) {
+        verSelect.disabled = true;
+        return;
+    }
+
+    verSelect.disabled = false;
+
+
+    const versions = promoPricesByPlatform?.[platform]?.[cat]?.[prodName] || {};
+    for (let versionName in versions) {
+        const opt = document.createElement('option');
+        opt.value = versionName;
+        opt.textContent = versionName;
+        verSelect.appendChild(opt);
+    }
+
+    updatePriceDisplay();
+}
+
+
+function updatePriceDisplay() {
+    const platform = document.getElementById('platform').value;
+    const prodSelect = document.getElementById('product');
+    const prodName = prodSelect.value;
+    const cat = prodSelect.options[prodSelect.selectedIndex]?.dataset?.category;
+    const verName = document.getElementById('version').value;
+    const applyDateStr = document.getElementById('applyDate').value;
+
+    if (!platform || !prodName || !cat) {
+        document.getElementById('currentPromoPrice').value = '';
+        return;
+    }
+
+
+    let prices = promoPricesByPlatform?.[platform]?.[cat]?.[prodName]?.[verName] 
+              || promoPricesByPlatform?.[platform]?.[cat]?.[prodName]?.["ALL"];
+
+    if (!prices) {
+        const allVers = promoPricesByPlatform?.[platform]?.[cat]?.[prodName];
+        if (allVers && Object.keys(allVers).length > 0) {
+            prices = allVers[Object.keys(allVers)[0]];
+        }
+    }
+
+    if (!prices) {
+        document.getElementById('currentPromoPrice').value = '';
+        return;
+    }
+
+    let price = prices?.w1; 
+
+if (applyDateStr) {
+    const catTime = timeConfig[cat];
+    const applyDate = new Date(applyDateStr + "T00:00"); 
+
+    if (catTime?.wave2Start && catTime?.wave2End &&
+        applyDate >= new Date(catTime.wave2Start) &&
+        applyDate <= new Date(catTime.wave2End)) {
+
+        price = prices?.w2 ?? prices?.w1;
+    } else if (catTime?.wave1Start && catTime?.wave1End &&
+               applyDate >= new Date(catTime.wave1Start) &&
+               applyDate <= new Date(catTime.wave1End)) {
+
+        price = prices?.w1;
+    } else {
+
+        price = prices?.w1;
+    }
+}
+
+    document.getElementById('currentPromoPrice').value = price ?? '';
+}
+
+
+        function toggleSubsidyInputs() {
+            const oldCheck = document.getElementById('hasOldSubsidy').checked;
+            document.getElementById('oldSubsidyRate').disabled = !oldCheck;
+            if(!oldCheck) document.getElementById('oldSubsidyRate').value = 0; 
+            else if(document.getElementById('oldSubsidyRate').value == 0) document.getElementById('oldSubsidyRate').value = 15;
+
+            const newCheck = document.getElementById('hasNewSubsidy').checked;
+            document.getElementById('newSubsidyRate').disabled = !newCheck;
+            if(!newCheck) document.getElementById('newSubsidyRate').value = 0; 
+            else if(document.getElementById('newSubsidyRate').value == 0) document.getElementById('newSubsidyRate').value = 15;
+        }
+
+function calculate() {
+    updatePriceDisplay();
+    const platform = document.getElementById('platform').value;
+    const prodSelect = document.getElementById('product');
+    const product = prodSelect.value;
+    const category = prodSelect.options[prodSelect.selectedIndex]?.dataset?.category; 
+
+    const signDate = document.getElementById('signDate').value;
+    const applyDate = document.getElementById('applyDate').value;
+    const origPrice = parseFloat(document.getElementById('originalPrice').value) || 0;
+    const currPrice = parseFloat(document.getElementById('currentPromoPrice').value) || 0;
+    const refunded = parseFloat(document.getElementById('refundedAmount').value) || 0;
+    const hasOldSubsidy = document.getElementById('hasOldSubsidy').checked;
+
+    if (!platform) { alert("请先选择购买平台！"); return; }
+    if (!category) { alert("请先选择产品！"); return; }
+    if (!product) { alert("请选择具体产品！"); return; }
+    if (!signDate || !applyDate || !origPrice) { alert("请完整填写：签收日期、申请日期、原订单单价"); return; }
+    if (signDate > applyDate) { alert("错误：签收日期不能晚于申请日期"); return; }
+    if (currPrice === 0 || isNaN(currPrice)) { alert("未能获取当前活动价，请确认该平台是否有此产品数据"); return; }
+
+
+    const oldRate = hasOldSubsidy ? parseFloat(document.getElementById('oldSubsidyRate').value)/100 : 0;
+    const newRate = document.getElementById('hasNewSubsidy').checked ? parseFloat(document.getElementById('newSubsidyRate').value)/100 : 0;
+    const diffNoSubsidy = origPrice - currPrice;
+    const diffWithSubsidy = (origPrice * (1 - oldRate)) - (currPrice * (1 - newRate)); 
+    let finalRefund = Math.min(diffNoSubsidy, diffWithSubsidy) - refunded;
+    if (finalRefund < 0) finalRefund = 0;
+    let formula = `退差金额 = min(${origPrice} - ${currPrice}, ${origPrice}*(1-${oldRate}) - ${currPrice}*(1-${newRate})) - ${refunded}`;
+            if (finalRefund < 0) finalRefund = 0;
+
+
+
+            const dayDiff = Math.ceil((new Date(applyDate) - new Date(signDate)) / (1000 * 60 * 60 * 24));
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = "";
+
+            let matchedRules = [];
+
+
+const catTime = timeConfig[category];
+const applyDt = new Date(applyDate + "T00:00");
+
+
+if (catTime?.wave1Start && applyDt < new Date(catTime.wave1Start)) {
+    const rule = scripts.before_event_start;
+    resultContainer.innerHTML = `
+        <div class="rule-block reject">
+            <div class="block-header">${rule.title}</div>
+            <div class="tag-row">
+                <span class="tag policy">政策: ${rule.policy}</span>
+                <span class="tag strategy">${rule.strategy}</span>
+            </div>
+            <div class="script-box"><span class="script-title">参考话术</span>${rule.script}</div>
+        </div>
+    `;
+    document.getElementById('refundAmountResult').innerText = "不可退差";
+    document.getElementById('formulaUsed').innerText = "";
+    return; 
+}
+
+
+let eventEndDate = catTime?.wave2End ? new Date(catTime.wave2End)
+                  : catTime?.wave1End ? new Date(catTime.wave1End)
+                  : null;
+if (eventEndDate && applyDt > eventEndDate) {
+    const rule = scripts.after_event_reject;
+    resultContainer.innerHTML = `
+        <div class="rule-block reject">
+            <div class="block-header">${rule.title}</div>
+            <div class="tag-row">
+                <span class="tag policy">政策: ${rule.policy}</span>
+                <span class="tag strategy">${rule.strategy}</span>
+            </div>
+            <div class="script-box"><span class="script-title">参考话术</span>${rule.script}</div>
+        </div>
+    `;
+    document.getElementById('refundAmountResult').innerText = "不可退差";
+    document.getElementById('formulaUsed').innerText = "";
+    return; 
+}
+
+
+
+if (category === 'power' || product.toLowerCase().includes('power')) {
+    if (platform === 'jd_self') {
+        if (dayDiff <= 7) {
+
+            matchedRules.push(scripts.power_jd_self_within7);
+        } else {
+
+            matchedRules.push(scripts.power_jd_self_over7_step1);
+            matchedRules.push(scripts.power_jd_self_over7_step2);
+        }
+    } else {
+if (dayDiff <= 7) {
+    if (platform === 'tmall') {
+        matchedRules.push(scripts.power_tmall_pop_within7);
+        matchedRules.push(scripts.power_tmall_pop_within7_manual);
+    } else if (platform === 'jd_pop') {
+        matchedRules.push(scripts.power_jd_pop_within7);
+        matchedRules.push(scripts.power_jd_pop_within7_manual);
+    } else if (platform === 'dji') {
+        matchedRules.push(scripts.power_dji_within7);
+    } else if (platform === 'douyin') {
+    if (document.getElementById('hasNewSubsidy').checked) {
+        matchedRules.push(scripts.power_douyin_within7_subsidy);
+    } else {
+        matchedRules.push(scripts.power_douyin_within7_normal);
+    }
+} else {
+        matchedRules.push(scripts.power_general_within7);
+    }
+                    } else if (dayDiff <= 15) {
+    if (platform === 'tmall') {
+        matchedRules.push(scripts.power_gray_area_tmall);
+    } else if (platform === 'douyin') {
+        matchedRules.push(scripts.power_gray_area_douyin);
+    } else if (['pdd','wechat','xhs'].includes(platform)) {
+        matchedRules.push(scripts.power_gray_area_pdd_wechat_xhs);
+    } else if (platform === 'jd_pop') {
+        matchedRules.push(scripts.power_gray_area_jd_pop);
+    } else if (platform === 'dji') {
+        matchedRules.push(scripts.power_gray_area_dji);
+    } else {
+
+        matchedRules.push(scripts.power_gray_area);
+    }
+} else {
+                        matchedRules.push(scripts.reject);
+                    }
+                }
+} else { // 非Power产品
+    if (dayDiff > 7) {
+
+        matchedRules.push(scripts.nopower_over7_block1);
+        matchedRules.push(scripts.nopower_over7_block2);
+        matchedRules.push(scripts.nopower_over7_block3);
+
+        // === Mini 3 / Mini 4K 特殊逻辑（天猫 & 抖音）===
+        if (["Mini 3", "Mini 4K"].includes(product)) {
+            if (platform === 'tmall') {
+                matchedRules.push(scripts.nopower_tmall_mini_billionreject);
+            } else if (platform === 'douyin') {
+                matchedRules.push(scripts.nopower_douyin_mini_couponreject);
+            }
+    matchedRules.push(scripts.nopower_mini_retirebuy); 
+ }
+    } else {
+
+        if (platform === 'tmall') {
+            matchedRules.push(scripts.nopower_tmall_within7_selfprice);
+            matchedRules.push(scripts.nopower_tmall_within7_refund);
+
+if (["Mini 3", "Mini 4K"].includes(product)) {
+    matchedRules.push(scripts.nopower_tmall_mini_billionreject);
+    matchedRules.push(scripts.nopower_mini_retirebuy); // 直接一个脚本
+}
+
+        } else if (platform === 'jd_pop') {
+            matchedRules.push(scripts.nopower_jd_pop_within7_selfprice);
+            matchedRules.push(scripts.nopower_jd_pop_within7_manual);
+
+        } else if (platform === 'jd_self') {
+            matchedRules.push(scripts.nopower_jd_self_within7_v2);
+
+        } else if (platform === 'douyin') {
+            if (hasOldSubsidy) {
+                matchedRules.push(scripts.nopower_douyin_within7_subsidy_v2);
+            } else {
+                matchedRules.push(scripts.nopower_douyin_within7_normal_v2);
+            }
+
+if (["Mini 3", "Mini 4K"].includes(product)) {
+    matchedRules.push(scripts.nopower_douyin_mini_couponreject);
+    matchedRules.push(scripts.nopower_mini_retirebuy); // 直接一个脚本
+}
+
+        } else if (['pdd','wechat','xhs'].includes(platform)) {
+            matchedRules.push(scripts.nopower_pdd_wechat_xhs_within7_v2);
+
+        } else if (platform === 'dji') {
+            matchedRules.push(scripts.nopower_dji_within7_v2);
+
+        } else {
+            matchedRules.push(scripts.nopower_general_within7);
+        }
+    }
+
+if (product === 'OA4') {
+    matchedRules.push(scripts.nopower_gift_reject);
+    matchedRules.push(scripts.nopower_gift_retirebuy);
+}
+}
+
+
+
+const hasRefundable = matchedRules.some(rule => rule.policy === '可退差');
+if (hasRefundable) {
+    document.getElementById('refundAmountResult').innerText = "¥ " + finalRefund.toFixed(2);
+    document.getElementById('formulaUsed').innerText = formula;
+} else {
+    document.getElementById('refundAmountResult').innerText = "不可退差";
+    document.getElementById('formulaUsed').innerText = "";
+}
+
+
+
+matchedRules.forEach(rule => {
+    let content = rule.script;
+
+
+    if (rule.policy === '可退差' && finalRefund > 0) {
+        content += `\n\n💰 本次计算建议退差：¥${finalRefund.toFixed(2)}`;
+    }
+                const div = document.createElement('div');
+                div.className = `rule-block ${rule.title.includes('灰度') ? 'gray-area' : ''} ${rule.title.includes('拒绝') ? 'reject' : ''}`;
+                div.innerHTML = `
+                    <div class="block-header">
+                        <span>${rule.title}</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag policy">政策: ${rule.policy}</span>
+                        <span class="tag strategy">思路: ${rule.strategy}</span>
+                    </div>
+                    <div class="script-box"><span class="script-title">参考话术</span>${content}</div>
+                `;
+                resultContainer.appendChild(div);
+            });
+        }
+
+
+        window.onload = function() {
+            document.getElementById('applyDate').valueAsDate = new Date();
+        };
+    </script>
+</body>
+</html>
